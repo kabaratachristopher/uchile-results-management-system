@@ -1,0 +1,151 @@
+{% extends "base.html" %}{% block title %}Teacher - Student Behavior{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="bi bi-clipboard-check"></i> Student Behavior & Comments</h3>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label>Select Class</label>
+                <select name="class_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Choose...</option>
+                    {% for c in classes %}
+                    <option value="{{c.id}}" {% if selected_class_id==c.id %}selected{% endif %}>Form {{c.name}} [{{c.level}}]</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label>Select Exam</label>
+                <select name="exam_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Choose...</option>
+                    {% for e in exam_records %}
+                    <option value="{{e.id}}" {% if selected_exam_id==e.id %}selected{% endif %}>
+                        {{e.exam_type}} - {{e.month}} {{e.year}}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if students %}
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Students - Behavior Entry</h5>
+    <button class="btn btn-light btn-sm" id="saveAllBehaviors">
+        <i class="bi bi-save"></i> Save All
+    </button>
+</div>
+    <div class="card-body">
+        <table class="table table-bordered" id="teacherTable">
+            <thead class="table-dark">
+                <tr>
+                    <th>CNO</th><th>Full Name</th><th>Sex</th>
+                    <th>Heshima</th><th>Ushirikiano</th><th>Kujituma</th>
+                    <th>Usafi</th><th>Nidhamu</th><th>Uaminifu</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in students %}
+                <tr>
+                    <td>{{s.admission_number}}</td>
+                    <td>{{s.first_name}} {{s.last_name}}</td>
+                    <td>{{s.sex}}</td>
+                    <td><select class="form-select form-select-sm behavior" data-student="{{s.id}}" data-field="heshima">
+                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                    </select></td>
+                    <td><select class="form-select form-select-sm behavior" data-student="{{s.id}}" data-field="ushirikiano">
+                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                    </select></td>
+                    <td><select class="form-select form-select-sm behavior" data-student="{{s.id}}" data-field="kujituma">
+                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                    </select></td>
+                    <td><select class="form-select form-select-sm behavior" data-student="{{s.id}}" data-field="usafi">
+                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                    </select></td>
+                    <td><select class="form-select form-select-sm behavior" data-student="{{s.id}}" data-field="nidhamu">
+                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                    </select></td>
+                    <td><select class="form-select form-select-sm behavior" data-student="{{s.id}}" data-field="uaminifu">
+                        <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option><option value="D">D</option>
+                    </select></td>
+                    <td><button class="btn btn-sm btn-success save-behavior" data-student="{{s.id}}">Save</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+$(document).ready(function(){
+    $('#teacherTable').DataTable({pageLength:50});
+    
+    $('.save-behavior').click(function(){
+        var studentId = $(this).data('student');
+        var examId = {{selected_exam_id}};
+        var row = $(this).closest('tr');
+        
+        var data = {
+            student_id: studentId,
+            exam_record_id: examId,
+            heshima: row.find('[data-field="heshima"]').val(),
+            ushirikiano: row.find('[data-field="ushirikiano"]').val(),
+            kujituma: row.find('[data-field="kujituma"]').val(),
+            usafi: row.find('[data-field="usafi"]').val(),
+            nidhamu: row.find('[data-field="nidhamu"]').val(),
+            uaminifu: row.find('[data-field="uaminifu"]').val()
+        };
+        
+        $.ajax({
+            url: '/api/behavior/save',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(r){
+                alert(r.message);
+            }
+        });
+    });
+});
+// Save All Behaviors
+$('#saveAllBehaviors').click(function(){
+    var examId = {{ selected_exam_id }};
+    var total = 0;
+    var saved = 0;
+    
+    $('.save-behavior').each(function(){
+        total++;
+        var studentId = $(this).data('student');
+        var row = $(this).closest('tr');
+        
+        var data = {
+            student_id: studentId,
+            exam_record_id: examId,
+            heshima: row.find('[data-field="heshima"]').val(),
+            ushirikiano: row.find('[data-field="ushirikiano"]').val(),
+            kujituma: row.find('[data-field="kujituma"]').val(),
+            usafi: row.find('[data-field="usafi"]').val(),
+            nidhamu: row.find('[data-field="nidhamu"]').val(),
+            uaminifu: row.find('[data-field="uaminifu"]').val()
+        };
+        
+        $.ajax({
+            url: '/api/behavior/save',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            async: false,
+            success: function(r){ saved++; },
+            error: function(){ alert('Error saving student ' + studentId); }
+        });
+    });
+    
+    alert('Saved ' + saved + ' of ' + total + ' students!');
+});
+</script>
+{% endblock %}

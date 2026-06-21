@@ -1,0 +1,1 @@
+# Uchile Results Management System - Utils Package

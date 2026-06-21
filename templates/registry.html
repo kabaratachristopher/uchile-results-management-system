@@ -1,0 +1,77 @@
+{% extends "base.html" %}{% block title %}Registry{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-6"><h3><i class="bi bi-journal-text"></i> Student Registry</h3></div>
+    <div class="col-md-6 text-end">
+        {% if selected_class_id %}
+        <a href="/api/registry/pdf?class_id={{selected_class_id}}" class="btn btn-danger btn-lg" target="_blank"><i class="bi bi-file-pdf"></i> Print PDF</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+    <form method="GET" class="row"><div class="col-md-4">
+        <select name="class_id" class="form-select" onchange="this.form.submit()">
+            <option value="">-- Select Class --</option>
+            {% for c in classes %}
+            <option value="{{c.id}}" {% if selected_class_id==c.id %}selected{% endif %}>Form {{c.name}} [{{c.level}}]{% if c.curriculum=='OLD' %} (Old Curr){% endif %}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3"><a href="/registry" class="btn btn-secondary">Show All</a></div>
+    <div class="col-md-5 text-end"><span class="badge bg-info fs-6">Total: {{registry_data|length}} Students</span></div></form>
+</div></div>
+
+{% if selected_class_id %}
+<div class="card"><div class="card-header bg-primary text-white"><h5 class="mb-0">Form {{selected_class.name}} Registry</h5></div>
+<div class="card-body"><div class="table-responsive">
+<table class="table table-bordered table-striped" id="registryTable">
+<thead class="table-dark">
+    <tr>
+        <th>S/N</th>
+        <th>CNO</th>
+        <th>Full Name</th>
+        <th>Sex</th>
+        {% for s in subjects %}
+        <th style="font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;min-width:25px;">{{s.short_code}}</th>
+        {% endfor %}
+        <th>Total</th>
+    </tr>
+</thead>
+<tbody>
+    {% for d in registry_data %}
+    <tr>
+        <td>{{loop.index}}</td>
+        <td><strong>{{d.student.cno}}</strong></td>
+        <td style="text-align:left;">{{d.student.first_name}} {{d.student.last_name}}</td>
+        <td>{{d.student.sex}}</td>
+        {% for s in subjects %}
+        <td class="text-center">
+            {% if d.subject_ticks[s.code] %}
+            <span class="text-success fw-bold">✓</span>
+            {% else %}
+            <span class="text-muted">-</span>
+            {% endif %}
+        </td>
+        {% endfor %}
+        <td class="text-center fw-bold">{{d.total_subjects}}</td>
+    </tr>
+    {% endfor %}
+</tbody>
+</table>
+</div></div></div>
+{% else %}
+<div class="alert alert-info">Please select a class to view the registry.</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+$(document).ready(function(){
+    $('#registryTable').DataTable({
+        pageLength: 50,
+        scrollX: true,
+        order: [[1, 'asc']]
+    });
+});
+</script>
+{% endblock %}

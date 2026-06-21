@@ -1,0 +1,454 @@
+{% extends "base.html" %}{% block title %}Results Processing{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="bi bi-file-bar-graph"></i> Results Processing Unit</h3>
+
+<!-- Step 1: Create Exam Record -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white"><h5 class="mb-0">Step 1: Create Examination Record</h5></div>
+    <div class="card-body">
+        <form id="createExamForm" class="row g-3">
+            <div class="col-md-3">
+                <label>Class</label>
+                <select class="form-select" name="class_id" required>
+                    <option value="">Select Class...</option>
+                    {% for c in classes %}
+                    <option value="{{c.id}}">Form {{c.name}} [{{c.level}}]</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label>Exam Type</label>
+                <select class="form-select" name="exam_type" required>
+                    <option value="">Select...</option>
+                    <option>MONTHLY TEST</option>
+                    <option>MIDTERM</option>
+                    <option>TERMINAL</option>
+                    <option>ANNUAL</option>
+                    <option>MOCK</option>
+                    <option>PRE-NECTA</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label>Month</label>
+                <select class="form-select" name="month" required>
+                    <option value="">Month...</option>
+                    {% for m in ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'] %}
+                    <option value="{{m}}">{{m}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label>Year</label>
+                <select class="form-select" name="year" required>
+                    {% for y in range(2020,2031) %}
+                    <option value="{{y}}" {% if y==2024 %}selected{% endif %}>{{y}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-success w-100">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Step 2: Upload Scores -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white"><h5 class="mb-0">Step 2: Upload Scores (Excel)</h5></div>
+    <div class="card-body">
+        <form id="uploadScoresForm" enctype="multipart/form-data" class="row g-3">
+            <div class="col-md-4">
+                <label>Select Exam Record</label>
+                <select class="form-select" name="exam_record_id" id="examRecordSelect" required>
+                    <option value="">Select...</option>
+                    {% for e in exam_records %}
+                    <option value="{{e.id}}">Form {{e.exam_class.name}} - {{e.exam_type}} - {{e.month}} {{e.year}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label>Upload Excel File</label>
+                <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required>
+            </div>
+            <div class="col-md-3">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-info text-white w-100">Upload Scores</button>
+            </div>
+            <div class="col-md-2">
+                <label>&nbsp;</label>
+                <a href="#" class="btn btn-secondary w-100" id="downloadScoreTemplate">Template</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Step 3: View & Print Results -->
+<div class="card mb-4">
+    <div class="card-header bg-success text-white"><h5 class="mb-0">Step 3: View & Print Results</h5></div>
+    <div class="card-body">
+        <table class="table" id="examRecordsTable">
+            <thead>
+                <tr>
+                    <th>Class</th><th>Exam Type</th><th>Month/Year</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in exam_records %}
+                <tr>
+                    <td>Form {{e.exam_class.name}}</td>
+                    <td><span class="badge bg-primary">{{e.exam_type}}</span></td>
+                    <td>{{e.month}} {{e.year}}</td>
+                    <td>
+                        <a href="/api/results/view/{{e.id}}" class="btn btn-sm btn-info text-white" target="_blank">View</a>
+                        <a href="/api/reports/necta-format/{{e.id}}" class="btn btn-sm btn-danger" target="_blank">PDF</a>
+                        <button class="btn btn-sm btn-warning delete-exam" data-id="{{e.id}}">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Step 4: Promote Students -->
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white"><h5 class="mb-0">Promote Students (After Annual Exam)</h5></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <p class="text-muted">Promote all students to the next form after Annual Examination. Form IV and Form VI students will graduate.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <form id="promoteForm">
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm" name="exam_record_id" id="promoteExamSelect" required>
+                            <option value="">Select ANNUAL Exam...</option>
+                            {% for e in exam_records %}
+                            {% if e.exam_type == 'ANNUAL' %}
+                            <option value="{{e.id}}">Form {{e.exam_class.name}} - {{e.month}} {{e.year}}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Promote all students in this class to the next form? Form IV & VI will graduate.')">
+                        <i class="bi bi-arrow-up-circle"></i> Promote Students
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div id="promoteResult" class="mt-2"></div>
+    </div>
+</div>
+
+<!-- Rollback Promotion -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white"><h5 class="mb-0">Rollback Promotion</h5></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="text-muted">Roll back ALL students from a previous promotion.</p>
+                <form id="rollbackForm">
+                    <div class="mb-2">
+                        <select class="form-select form-select-sm" name="exam_record_id" id="rollbackExamSelect" required>
+                            <option value="">Select ANNUAL Exam...</option>
+                            {% for e in exam_records %}
+                            {% if e.exam_type == 'ANNUAL' %}
+                            <option value="{{e.id}}">Form {{e.exam_class.name}} - {{e.month}} {{e.year}}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Roll back ALL students from this promotion?')">
+                        <i class="bi bi-arrow-counterclockwise"></i> Rollback All
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Step 5: Report Generation -->
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Report Generation</h5></div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Individual Report Cards -->
+            <div class="col-md-3">
+                <div class="card border-primary h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-badge" style="font-size: 3rem; color: #003366;"></i>
+                        <h5 class="mt-2">Individual Report</h5>
+                        <p class="text-muted small">Generate report card for a specific student</p>
+                        <form id="reportCardForm" class="mt-3">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" name="exam_record_id" id="reportExamSelect" required>
+                                    <option value="">Select Exam...</option>
+                                    {% for e in exam_records %}
+                                    <option value="{{e.id}}" data-class="{{e.class_id}}">Form {{e.exam_class.name}} - {{e.exam_type}} - {{e.month}} {{e.year}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" name="student_id" id="reportStudentSelect" required>
+                                    <option value="">Select Student...</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-file-pdf"></i> Generate Report Card
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Results -->
+            <div class="col-md-3">
+                <div class="card border-success h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people-fill" style="font-size: 3rem; color: #006400;"></i>
+                        <h5 class="mt-2">Class Results</h5>
+                        <p class="text-muted small">View full results for an entire class</p>
+                        <form id="classReportForm" class="mt-3">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" name="exam_record_id" id="classReportExamSelect" required>
+                                    <option value="">Select Exam...</option>
+                                    {% for e in exam_records %}
+                                    <option value="{{e.id}}">Form {{e.exam_class.name}} - {{e.exam_type}} - {{e.month}} {{e.year}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-sm w-100">
+                                <i class="bi bi-eye"></i> View Class Results
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Division Summary -->
+            <div class="col-md-3">
+                <div class="card border-info h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-bar-chart-fill" style="font-size: 3rem; color: #0088cc;"></i>
+                        <h5 class="mt-2">Division Summary</h5>
+                        <p class="text-muted small">Generate division performance summary</p>
+                        <form id="divisionReportForm" class="mt-3">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" name="class_id" id="divisionClassSelect" required>
+                                    <option value="">Select Class...</option>
+                                    {% for c in classes %}
+                                    <option value="{{c.id}}">Form {{c.name}} [{{c.level}}]</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" name="exam_type" id="divisionExamType" required>
+                                    <option value="">Exam Type...</option>
+                                    <option>MONTHLY TEST</option>
+                                    <option>MIDTERM</option>
+                                    <option>TERMINAL</option>
+                                    <option>ANNUAL</option>
+                                    <option>MOCK</option>
+                                    <option>PRE-NECTA</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-info btn-sm w-100 text-white">
+                                <i class="bi bi-file-pdf"></i> Generate Report
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Report Cards -->
+            <div class="col-md-3">
+                <div class="card border-danger h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-file-earmark-pdf" style="font-size: 3rem; color: #B71C1C;"></i>
+                        <h5 class="mt-2">Bulk Reports</h5>
+                        <p class="text-muted small">Generate all student reports for an exam at once</p>
+                        <form id="bulkReportForm" class="mt-3">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" name="exam_record_id" id="bulkReportExamSelect" required>
+                                    <option value="">Select Exam...</option>
+                                    {% for e in exam_records %}
+                                    <option value="{{e.id}}">Form {{e.exam_class.name}} - {{e.exam_type}} - {{e.month}} {{e.year}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-sm w-100">
+                                <i class="bi bi-file-pdf"></i> Generate All Reports
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function(){
+    $('#examRecordsTable').DataTable({
+        order: [[2, 'desc']],
+        columnDefs: [{ orderable: false, targets: [3] }]
+    });
+    
+    // Create Exam Record
+    $('#createExamForm').on('submit',function(e){
+        e.preventDefault();
+        $.ajax({
+            url:'/api/exam-records',
+            method:'POST',
+            contentType:'application/json',
+            data:JSON.stringify({
+                class_id:$('select[name="class_id"]').val(),
+                exam_type:$('select[name="exam_type"]').val(),
+                month:$('select[name="month"]').val(),
+                year:$('select[name="year"]').val()
+            }),
+            success:function(r){alert(r.message);location.reload();}
+        });
+    });
+    
+    // Upload Scores
+    $('#uploadScoresForm').on('submit',function(e){
+        e.preventDefault();
+        var f=new FormData(this);
+        $.ajax({
+            url:'/api/results/upload-scores',
+            method:'POST',
+            data:f,
+            processData:false,
+            contentType:false,
+            success:function(r){alert(r.message);location.reload();}
+        });
+    });
+    
+    // Download Score Template
+    $('#downloadScoreTemplate').click(function(e){
+        e.preventDefault();
+        var examId = $('#examRecordSelect').val();
+        if(!examId){alert('Please select an exam record first.');return;}
+        $.get('/api/exam-records/'+examId, function(data){
+            if(data.class_id){
+                window.location.href='/api/download/template/scores?class_id='+data.class_id;
+            }
+        });
+    });
+    
+    // Report Card - Load students when exam selected
+    $('#reportExamSelect').change(function(){
+        var examId = $(this).val();
+        if(examId){
+            $.get('/api/exam-records/'+examId, function(data){
+                if(data.class_id){
+                    $.get('/api/class-students/'+data.class_id, function(students){
+                        var options = '<option value="">Select Student...</option>';
+                        students.forEach(function(s){
+                            options += '<option value="'+s.id+'">'+s.admission_number+' - '+s.first_name+' '+s.last_name+'</option>';
+                        });
+                        $('#reportStudentSelect').html(options);
+                    });
+                }
+            });
+        }
+    });
+    
+    // Generate Report Card
+    $('#reportCardForm').on('submit',function(e){
+        e.preventDefault();
+        var examId = $('#reportExamSelect').val();
+        var studentId = $('#reportStudentSelect').val();
+        if(examId && studentId){
+            window.open('/api/reports/report-card/'+studentId+'/'+examId, '_blank');
+        }
+    });
+    
+    // Class Results Report
+    $('#classReportForm').on('submit',function(e){
+        e.preventDefault();
+        var examId = $('#classReportExamSelect').val();
+        if(examId){
+            window.open('/api/results/view/'+examId, '_blank');
+        }
+    });
+    
+    // Division Report
+    $('#divisionReportForm').on('submit',function(e){
+        e.preventDefault();
+        var classId = $('#divisionClassSelect').val();
+        var examType = $('#divisionExamType').val();
+        if(classId && examType){
+            window.open('/api/reports/division-summary?class_id='+classId+'&exam_type='+examType, '_blank');
+        }
+    });
+    
+    // Bulk Report Cards
+    $('#bulkReportForm').on('submit',function(e){
+        e.preventDefault();
+        var examId = $('#bulkReportExamSelect').val();
+        if(examId){
+            window.open('/api/reports/bulk-report-cards/'+examId, '_blank');
+        }
+    });
+    
+    // Delete Exam Record
+    $('.delete-exam').click(function(){
+        if(confirm('Delete this exam record and ALL its results? This cannot be undone.')){
+            var examId = $(this).data('id');
+            $.ajax({
+                url: '/api/exam-records/' + examId,
+                method: 'DELETE',
+                success: function(r){
+                    alert(r.message);
+                    location.reload();
+                },
+                error: function(x){
+                    alert('Error: ' + x.responseJSON.message);
+                }
+            });
+        }
+    });
+});
+// Promote Students
+$('#promoteForm').on('submit', function(e){
+    e.preventDefault();
+    var examId = $('#promoteExamSelect').val();
+    if(!examId) return;
+    
+    $.ajax({
+        url: '/api/students/promote',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({exam_record_id: examId}),
+        success: function(r){
+            alert(r.message);
+            location.reload();
+        },
+        error: function(x){
+            alert('Error: ' + x.responseJSON.message);
+        }
+    });
+});
+// Rollback Promotion
+$('#rollbackForm').on('submit', function(e){
+    e.preventDefault();
+    var examId = $('#rollbackExamSelect').val();
+    if(!examId) return;
+    
+    $.ajax({
+        url: '/api/students/rollback-promotion',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({exam_record_id: examId}),
+        success: function(r){
+            alert(r.message);
+            location.reload();
+        }
+    });
+});
+</script>
+{% endblock %}

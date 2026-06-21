@@ -1,0 +1,266 @@
+{% extends "base.html" %}{% block title %}Uchile RMS - Login{% endblock %}
+{% block content %}
+<style>
+    .login-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .login-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    .login-panel {
+        display: none;
+    }
+    .login-panel.active {
+        display: block;
+    }
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        
+        <!-- Main Options -->
+        <div class="row" id="mainOptions">
+            <!-- Log In Card -->
+            <div class="col-md-6 mb-3">
+                <div class="card shadow login-card border-primary" onclick="showLoginOptions()">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-box-arrow-in-right" style="font-size: 4rem; color: #003366;"></i>
+                        <h3 class="mt-3">Log In</h3>
+                        <p class="text-muted">Admin & Class Teacher Access</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- View Results Card -->
+            <div class="col-md-6 mb-3">
+                <div class="card shadow login-card border-info" onclick="showResultsPanel()">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-eye-fill" style="font-size: 4rem; color: #01579B;"></i>
+                        <h3 class="mt-3">View Results</h3>
+                        <p class="text-muted">Students, Teachers & Parents</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Options Panel -->
+        <div class="row login-panel" id="loginOptions">
+            <div class="col-12 text-center mb-3">
+                <button class="btn btn-outline-secondary" onclick="showMainOptions()">
+                    <i class="bi bi-arrow-left"></i> Back
+                </button>
+            </div>
+            
+            <!-- Admin Login -->
+            <div class="col-md-6">
+                <div class="card shadow border-primary">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h5 class="mb-0"><i class="bi bi-shield-lock-fill"></i> Admin Login</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/login">
+                            <input type="hidden" name="role" value="admin">
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <div class="input-group">
+                                    <input type="password" name="password" class="form-control" id="adminPassword" required>
+                                    <span class="input-group-text" onclick="togglePass('adminPassword', this)" style="cursor:pointer;">
+                                        <i class="bi bi-eye"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Login as Admin
+                            </button>
+                        </form>
+                        <div class="text-center mt-2">
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" class="text-muted small">Forgot Password?</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Teacher Login -->
+            <div class="col-md-6">
+                <div class="card shadow border-success">
+                    <div class="card-header bg-success text-white text-center">
+                        <h5 class="mb-0"><i class="bi bi-person-check-fill"></i> Class Teacher Login</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/login">
+                            <input type="hidden" name="role" value="teacher">
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <div class="input-group">
+                                    <input type="password" name="password" class="form-control" id="teacherPassword" required>
+                                    <span class="input-group-text" onclick="togglePass('teacherPassword', this)" style="cursor:pointer;">
+                                        <i class="bi bi-eye"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Login as Teacher
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Results Panel -->
+        <div class="login-panel" id="resultsPanel">
+            <div class="col-12 text-center mb-3">
+                <button class="btn btn-outline-secondary" onclick="showMainOptions()">
+                    <i class="bi bi-arrow-left"></i> Back
+                </button>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card shadow border-info">
+                        <div class="card-header bg-info text-white text-center">
+                            <h5 class="mb-0"><i class="bi bi-eye-fill"></i> View Examination Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted text-center">No login required - Select criteria below to view results</p>
+                            <form id="publicResultsForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Select Class</label>
+                                        <select class="form-select" name="class_id" id="publicClassSelect" required>
+                                            <option value="">Choose Class...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Exam Type</label>
+                                        <select class="form-select" name="exam_type" id="publicExamType" required>
+                                            <option value="">Choose Exam Type...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Month</label>
+                                        <select class="form-select" name="month" id="publicMonth" required>
+                                            <option value="">Month...</option>
+                                            {% for m in ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'] %}
+                                            <option value="{{m}}">{{m}}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Year</label>
+                                        <select class="form-select" name="year" id="publicYear" required>
+                                            <option value="">Year...</option>
+                                            {% for y in range(2020, 2031) %}
+                                            <option value="{{y}}" {% if y==2024 %}selected{% endif %}>{{y}}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-info text-white w-100">
+                                    <i class="bi bi-search"></i> View Results
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="bi bi-envelope"></i> Forgot Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Enter your registered email to receive a password reset link.</p>
+                <form id="forgotPasswordForm">
+                    <div class="mb-3"><label class="form-label">Registered Email</label><input type="email" class="form-control" name="email" required></div>
+                    <button type="submit" class="btn btn-warning w-100"><i class="bi bi-send"></i> Send Reset Link</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePass(id, icon) {
+    var inp = document.getElementById(id);
+    if (inp.type === 'password') { inp.type = 'text'; icon.innerHTML = '<i class="bi bi-eye-slash"></i>'; }
+    else { inp.type = 'password'; icon.innerHTML = '<i class="bi bi-eye"></i>'; }
+}
+
+function showLoginOptions() {
+    document.getElementById('mainOptions').style.display = 'none';
+    document.getElementById('loginOptions').classList.add('active');
+    document.getElementById('resultsPanel').classList.remove('active');
+}
+
+function showResultsPanel() {
+    document.getElementById('mainOptions').style.display = 'none';
+    document.getElementById('resultsPanel').classList.add('active');
+    document.getElementById('loginOptions').classList.remove('active');
+}
+
+function showMainOptions() {
+    document.getElementById('mainOptions').style.display = 'flex';
+    document.getElementById('loginOptions').classList.remove('active');
+    document.getElementById('resultsPanel').classList.remove('active');
+}
+
+$(document).ready(function(){
+    $.get('/api/public/classes', function(data){
+        var options = '<option value="">Choose Class...</option>';
+        data.forEach(function(c){ options += '<option value="'+c.id+'">Form '+c.name+' ['+c.level+']</option>'; });
+        $('#publicClassSelect').html(options);
+    });
+    $('#publicClassSelect').change(function(){
+        var classId = $(this).val();
+        if(classId){
+            $.get('/api/public/exam-types/'+classId, function(data){
+                var options = '<option value="">Choose Exam Type...</option>';
+                data.forEach(function(e){ options += '<option value="'+e.exam_type+'" data-month="'+e.month+'" data-year="'+e.year+'">'+e.exam_type+' - '+e.month+' '+e.year+'</option>'; });
+                $('#publicExamType').html(options);
+            });
+        }
+    });
+    $('#publicResultsForm').on('submit', function(e){
+        e.preventDefault();
+        var classId = $('#publicClassSelect').val();
+        var examType = $('#publicExamType').val();
+        var month = $('#publicMonth').val();
+        var year = $('#publicYear').val();
+        if(classId && examType && month && year){
+            $.get('/api/public/find-exam', {class_id: classId, exam_type: examType, month: month, year: year}, function(data){
+                if(data.exam_record_id){ window.open('/api/results/view/' + data.exam_record_id, '_blank'); }
+                else { alert('No results found for the selected criteria.'); }
+            });
+        }
+    });
+    $('#forgotPasswordForm').on('submit', function(e){
+        e.preventDefault();
+        $.ajax({url: '/api/forgot-password', method: 'POST', contentType: 'application/json',
+            data: JSON.stringify({email: $('input[name="email"]').val()}),
+            success: function(r){ alert(r.message); $('#forgotPasswordModal').modal('hide'); }});
+    });
+});
+</script>
+{% endblock %}
