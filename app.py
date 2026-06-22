@@ -120,7 +120,7 @@ def login():
                 return render_template('login.html')
             
             login_user(user, remember=True)
-            user.last_login = datetime.now(datetime.UTC)
+            user.last_login = datetime.utcnow()
             db.session.commit()
             
             if user.role == 'teacher':
