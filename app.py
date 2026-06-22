@@ -1792,7 +1792,7 @@ def validate_password_strength(password):
 
 reset_link = f"https://uchile-results-management-system.up.railway.app/reset-password/{token}"
     try:
-        reset_link = f"https://uchile-results-management-system.up.railway.app/reset-password/{token}"
+    reset_link = f"https://uchile-results-management-system.up.railway.app/reset-password/{token}"
         msg = MIMEMultipart()
         msg['From'] = app.config.get('MAIL_USERNAME', 'noreply@uchile.sc.tz')
         msg['To'] = email
