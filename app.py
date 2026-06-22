@@ -2135,6 +2135,32 @@ def log_action(action, details=''):
         db.session.add(log)
         db.session.commit()
 
+@app.route('/api/setup-curriculum')
+def setup_curriculum():
+    """One-time setup to configure Old Curriculum for Form III & IV"""
+    try:
+        # Set Form III & IV to Old Curriculum
+        for form_num in [3, 4]:
+            c = Class.query.filter_by(name=str(form_num), level='O-LEVEL').first()
+            if c:
+                c.curriculum = 'OLD'
+                print(f"Form {form_num} set to OLD curriculum")
+        
+        # Add Old Curriculum subjects if missing
+        old_subjects = [
+            ('201', 'CIVICS', 'CIV', 'O-LEVEL', 'COMPULSORY'),
+            ('024', 'LITERATURE IN ENGLISH', 'LIT', 'O-LEVEL', 'OPTIONAL'),
+        ]
+        for code, name, short, level, cat in old_subjects:
+            if not Subject.query.filter_by(code=code).first():
+                db.session.add(Subject(name=name, code=code, short_code=short, level=level, category=cat))
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Curriculum setup complete! Form III & IV = OLD'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 # ==================== INITIALIZATION ====================
 def init_db():
     with app.app_context():
