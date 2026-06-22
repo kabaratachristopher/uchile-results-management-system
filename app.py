@@ -1890,31 +1890,7 @@ def validate_password_strength(password):
     if not re.search(r'[!@#$%^&*(),.?\":{}|<>]', password):
         return False, "Password must contain at least one special character"
     return True, "Password is strong"
-        msg['From'] = app.config.get('MAIL_USERNAME', 'noreply@uchile.sc.tz')
-        msg['To'] = email
-        msg['Subject'] = 'Uchile RMS - Password Reset Request'
-        body = f"""
-        <html><body style="font-family:Arial;">
-            <div style="background:#003366;padding:15px;text-align:center;">
-                <h2 style="color:#FFD700;">UCHILE SECONDARY SCHOOL</h2>
-            </div>
-            <div style="padding:20px;">
-                <h3>Password Reset</h3>
-                <p>Click below to reset your password:</p>
-                <a href="{reset_link}" style="background:#003366;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Reset Password</a>
-                <p style="color:#666;">This link expires in 1 hour.</p>
-            </div>
-        </body></html>"""
-        msg.attach(MIMEText(body, 'html'))
-        server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
-        server.starttls()
-        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Email error: {e}")
-        return False
+        
 
 @app.route('/api/change-password', methods=['POST'])
 @login_required
