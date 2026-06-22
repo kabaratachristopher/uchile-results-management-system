@@ -451,18 +451,18 @@ def update_student(id):
             file = request.files['passport']
             if file and file.filename and file.filename != '':
                 ext = file.filename.lower().rsplit('.', 1)[-1] if '.' in file.filename else 'jpg'
-                if ext in ['jpg', 'jpeg', 'png']:
-                    file.seek(0, os.SEEK_END)
-            size = file.tell()
-            file.seek(0)
-                    if size <= 204800:
-                        try:
+            if ext in ['jpg', 'jpeg', 'png']:
+                file.seek(0, os.SEEK_END)
+                size = file.tell()
+                file.seek(0)
+                if size <= 204800:
+                    try:
                     # Upload to Cloudinary
-                            result = cloudinary.uploader.upload(file, folder="uchile_passports")
-                            student.passport_photo = result['secure_url'
-                        except:
+                        result = cloudinary.uploader.upload(file, folder="uchile_passports")
+                        student.passport_photo = result['secure_url']
+                    except:
                     # Fallback to local storage
-                            filename = f"passport_{id}.{ext}"
+                        filename = f"passport_{id}.{ext}"
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(filepath)
                     student.passport_photo = f"/uploads/{filename}"
