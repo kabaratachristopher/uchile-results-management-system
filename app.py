@@ -1890,11 +1890,6 @@ def validate_password_strength(password):
     if not re.search(r'[!@#$%^&*(),.?\":{}|<>]', password):
         return False, "Password must contain at least one special character"
     return True, "Password is strong"
-
-reset_link = f"https://uchile-results-management-system.up.railway.app/reset-password/{token}"
-    try:
-    reset_link = f"https://uchile-results-management-system.up.railway.app/reset-password/{token}"
-        msg = MIMEMultipart()
         msg['From'] = app.config.get('MAIL_USERNAME', 'noreply@uchile.sc.tz')
         msg['To'] = email
         msg['Subject'] = 'Uchile RMS - Password Reset Request'
@@ -2064,7 +2059,6 @@ def save_behavior():
         behavior.head_of_school_comment = 'Aongeze bidii zaidi katika masomo yote!'
         print(f"DEBUG: Saving comments for student {student_id}: CT={comments['class_teacher']}, AM={comments['academic_master']}, Div={div}")
     
-        db.session.commit()
         db.session.commit()
         return jsonify({'success': True, 'message': 'Behavior saved!'})
     except Exception as e:
