@@ -2153,6 +2153,11 @@ def init_db():
                                       level='A-LEVEL', category=info['category']))
         db.session.commit()
 
+# Initialize database before first request
+@app.before_request
+def initialize():
+    init_db()
+
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
