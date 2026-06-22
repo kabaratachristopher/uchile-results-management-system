@@ -2152,7 +2152,7 @@ def init_db():
             if not Class.query.filter_by(name=str(i), level=lv).first():
                 db.session.add(Class(name=str(i), level=lv))
         db.session.commit()
-                # Set Form III & IV to Old Curriculum by default
+        # Set Form III & IV to Old Curriculum by default
         for i in [3, 4]:
             c = Class.query.filter_by(name=str(i), level='O-LEVEL').first()
             if c and not c.curriculum:
@@ -2166,6 +2166,21 @@ def init_db():
             if not Subject.query.filter_by(code=code).first():
                 db.session.add(Subject(name=info['name'], code=code, short_code=info['short'],
                                       level='A-LEVEL', category=info['category']))
+        for code, info in O_LEVEL_SUBJECTS.items():
+            if not Subject.query.filter_by(code=code).first():
+                db.session.add(Subject(name=info['name'], code=code, short_code=info['short'],
+                                      level='O-LEVEL', category=info['category']))
+        for code, info in A_LEVEL_SUBJECTS.items():
+            if not Subject.query.filter_by(code=code).first():
+                db.session.add(Subject(name=info['name'], code=code, short_code=info['short'],
+                                      level='A-LEVEL', category=info['category']))
+        
+        # Add Old Curriculum subjects
+        if not Subject.query.filter_by(code='201').first():
+            db.session.add(Subject(name='CIVICS', code='201', short_code='CIV', level='O-LEVEL', category='COMPULSORY'))
+        if not Subject.query.filter_by(code='024').first():
+            db.session.add(Subject(name='LITERATURE IN ENGLISH', code='024', short_code='LIT', level='O-LEVEL', category='OPTIONAL'))
+        
         db.session.commit()
 
 # Initialize database before first request
