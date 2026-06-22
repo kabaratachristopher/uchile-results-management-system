@@ -2152,6 +2152,7 @@ def init_db():
             if not Class.query.filter_by(name=str(i), level=lv).first():
                 db.session.add(Class(name=str(i), level=lv))
         db.session.commit()
+        
         # Set Form III & IV to Old Curriculum by default
         for i in [3, 4]:
             c = Class.query.filter_by(name=str(i), level='O-LEVEL').first()
