@@ -457,16 +457,21 @@ def update_student(id):
                 size = file.tell()
                 file.seek(0)
                 if size <= 204800:
-                    try:
                     # Upload to Cloudinary
+                    try:
                         result = cloudinary.uploader.upload(file, folder="uchile_passports")
                         student.passport_photo = result['secure_url']
-                    except:
-                    # Fallback to local storage
-                        filename = f"passport_{id}.{ext}"
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(filepath)
-                    student.passport_photo = f"/uploads/{filename}"
+                    except Exception as e:
+                        print(f"Cloudinary error: {e}")
+                        # Only use local storage as fallback on development
+                        if os.environ.get('FLASK_ENV') == 'development':
+                            filename = f"passport_{id}.{ext}"
+                            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                            file.save(filepath)
+                            student.passport_photo = f"/uploads/{filename}"
+                        else:
+                            return jsonify({'success': False, 'message': 'Photo upload failed. Please try again.'}), 500
         
         # Update text fields
         student.first_name = request.form.get('first_name', student.first_name)
