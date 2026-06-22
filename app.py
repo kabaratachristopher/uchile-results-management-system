@@ -23,7 +23,15 @@ from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from collections import defaultdict
 from datetime import datetime, timedelta
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', '')
+)
 # Track login attempts
 login_attempts = defaultdict(list)
 MAX_ATTEMPTS = 5
@@ -442,16 +450,22 @@ def update_student(id):
         if 'passport' in request.files:
             file = request.files['passport']
             if file and file.filename and file.filename != '':
-                ext = file.filename.lower().rsplit('.', 1)[-1] if '.' in file.filename else ''
+                ext = file.filename.lower().rsplit('.', 1)[-1] if '.' in file.filename else 'jpg'
                 if ext in ['jpg', 'jpeg', 'png']:
                     file.seek(0, os.SEEK_END)
-                    size = file.tell()
-                    file.seek(0)
+            size = file.tell()
+            file.seek(0)
                     if size <= 204800:
-                        filename = f"passport_{id}.{ext}"
-                        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                        file.save(filepath)
-                        student.passport_photo = f"/uploads/{filename}"
+                        try:
+                    # Upload to Cloudinary
+                            result = cloudinary.uploader.upload(file, folder="uchile_passports")
+                            student.passport_photo = result['secure_url'
+                        except:
+                    # Fallback to local storage
+                            filename = f"passport_{id}.{ext}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    student.passport_photo = f"/uploads/{filename}"
         
         # Update text fields
         student.first_name = request.form.get('first_name', student.first_name)
