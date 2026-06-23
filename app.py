@@ -886,22 +886,22 @@ def report_card(sid, eid):
     ss = StudentSubject.query.filter_by(student_id=sid).all()
     results = Result.query.filter_by(student_id=sid, exam_record_id=eid).all()
     behavior = Behavior.query.filter_by(student_id=sid, exam_record_id=eid).first()
-    
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=0.4*inch, rightMargin=0.4*inch,
                            topMargin=0.3*inch, bottomMargin=0.3*inch)
     el = []
     sts = getSampleStyleSheet()
-    
+
     DARK_BLUE = colors.HexColor('#003366')
     CREAM = colors.HexColor('#FFF8F0')
     WHITE = colors.white
-    
+
     title_style = ParagraphStyle('T', parent=sts['Title'], alignment=TA_CENTER, fontSize=16, textColor=WHITE, leading=18)
     subtitle_style = ParagraphStyle('S', parent=sts['Normal'], alignment=TA_CENTER, fontSize=12, textColor=WHITE, leading=14)
     normal_style = ParagraphStyle('N', parent=sts['Normal'], fontSize=12, leading=14)
     small_style = ParagraphStyle('SM', parent=sts['Normal'], fontSize=10, leading=12)
-    
+
     # Header
     hd = [[Paragraph("UCHILE SECONDARY SCHOOL", title_style)],
           [Paragraph("SUMBAWANGA DC - RUKWA REGION", subtitle_style)],
@@ -914,11 +914,8 @@ def report_card(sid, eid):
                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
     el.append(ht)
     el.append(Spacer(1, 8))
-    
-    # Header
-    el.append(Spacer(1, 8))
-    
-    # Student Info (left) + Passport (right)
+
+    # Student Info + Passport
     info_text = f"<b>Name:</b> {st.first_name} {st.middle_name or ''} {st.last_name}<br/>"
     info_text += f"<b>CNO:</b> {st.cno}<br/>"
     info_text += f"<b>Admission:</b> {st.admission_number or 'N/A'}<br/>"
@@ -926,15 +923,28 @@ def report_card(sid, eid):
     info_text += f"<b>Sex:</b> {st.sex}<br/>"
     info_text += f"<b>Class:</b> Form {cl.name}<br/>"
     info_text += f"<b>Combination:</b> {st.combination or 'N/A'}"
-    
+
     info_para = Paragraph(info_text, normal_style)
-    
-    # Passport
+
+    # Passport Photo
+    passport_added = False
     if st.passport_photo:
-        photo_path = st.passport_photo.replace('/uploads/', '')
-        full_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_path)
-        if os.path.exists(full_path):
-            passport_img = Image(full_path, width=100, height=130)
+        try:
+            if st.passport_photo.startswith('http'):
+                import urllib.request
+                import tempfile
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+                urllib.request.urlretrieve(st.passport_photo, temp_file.name)
+                passport_img = Image(temp_file.name, width=100, height=130)
+                os.unlink(temp_file.name)
+            else:
+                photo_path = st.passport_photo.replace('/uploads/', '')
+                full_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_path)
+                if os.path.exists(full_path):
+                    passport_img = Image(full_path, width=100, height=130)
+                else:
+                    raise Exception("File not found")
+            
             info_data = [[info_para, passport_img]]
             info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
             info_table.setStyle(TableStyle([
@@ -943,12 +953,11 @@ def report_card(sid, eid):
                 ('LEFTPADDING', (1, 0), (1, 0), 10),
             ]))
             el.append(info_table)
-        else:
-            info_data = [[info_para, Paragraph('<b>[PASSPORT<br/>PHOTO]</b>', small_style)]]
-            info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
-            info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('ALIGN', (1, 0), (1, 0), 'CENTER')]))
-            el.append(info_table)
-    else:
+            passport_added = True
+        except:
+            pass
+    
+    if not passport_added:
         info_data = [[info_para, Paragraph('<b>[PASSPORT<br/>PHOTO]</b>', small_style)]]
         info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
         info_table.setStyle(TableStyle([
@@ -957,9 +966,9 @@ def report_card(sid, eid):
             ('BOX', (1, 0), (1, 0), 1, colors.black),
         ]))
         el.append(info_table)
-    
+
     el.append(Spacer(1, 8))
-    
+
     # Results Table
     td = [['CODE', 'SUBJECT', 'SCORE', 'GRADE', 'REMARKS']]
     total_points = 0
@@ -975,7 +984,7 @@ def report_card(sid, eid):
                 cg.append(r.grade)
         else:
             td.append([s.subject.code, s.subject.name, '-', '-', 'Absent'])
-    
+
     cw = [0.6*inch, 3.0*inch, 0.8*inch, 0.7*inch, 1.5*inch]
     t = Table(td, colWidths=cw)
     t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), DARK_BLUE),
@@ -990,9 +999,8 @@ def report_card(sid, eid):
                           ('ALIGN', (1, 0), (1, -1), 'LEFT')]))
     el.append(t)
     el.append(Spacer(1, 6))
-    
+
     # Division & GPA
-    div = ''
     if level == 'A-LEVEL' and len(cg) >= 3:
         div = determine_a_level_division(cg[:3])
         pts = sum(calculate_a_level_points(g) for g in cg[:3])
@@ -1005,7 +1013,7 @@ def report_card(sid, eid):
         el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
     el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
     el.append(Spacer(1, 6))
-    
+
     # Behavior Section
     el.append(Paragraph("<b>BEHAVIOR & CONDUCT (A=Bora, B=Vizuri, C=Wastani, D=Dhaifu)</b>", normal_style))
     el.append(Spacer(1, 2))
@@ -1026,12 +1034,12 @@ def report_card(sid, eid):
                                   ('ROWBACKGROUNDS', (0, 1), (-1, -1), [CREAM, WHITE])]))
     el.append(bh_table)
     el.append(Spacer(1, 6))
-    
+
     # Comments
     ct = behavior.class_teacher_comment if behavior and behavior.class_teacher_comment else '-'
     am = behavior.academic_master_comment if behavior and behavior.academic_master_comment else '-'
     hs = behavior.head_of_school_comment if behavior and behavior.head_of_school_comment else 'Aongeze bidii zaidi katika masomo yote!'
-    
+
     el.append(Paragraph("<b>OFFICIAL COMMENTS</b>", normal_style))
     el.append(Spacer(1, 3))
     el.append(Paragraph(f"<b>Class Teacher:</b> <u>{ct}</u>", normal_style))
@@ -1040,7 +1048,7 @@ def report_card(sid, eid):
     el.append(Spacer(1, 2))
     el.append(Paragraph(f"<b>Head of School:</b> <u>{hs}</u>", normal_style))
     el.append(Spacer(1, 8))
-    
+
     # Signatures
     sig_data = [['_____________________', '_____________________', '_____________________'],
                 ['Class Teacher', 'Academic Master', 'Head of School']]
@@ -1048,14 +1056,12 @@ def report_card(sid, eid):
     sig_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 10)]))
     el.append(sig_table)
     el.append(Spacer(1, 6))
-    
+
     el.append(Paragraph(f"Processed: {datetime.now().strftime('%d/%m/%Y at %H:%M:%S')} | Uchile RMS v1.0", small_style))
-    
     doc.build(el)
     buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True,
                     download_name=f'Report_{st.cno}.pdf')
-
 # ==================== NECTA FORMAT PDF ====================
 @app.route('/api/reports/necta-format/<int:eid>')
 def necta_pdf(eid):
@@ -1322,34 +1328,34 @@ def bulk_report_cards(eid):
     er = db.session.get(ExamRecord, eid)
     if not er:
         return "Exam record not found", 404
-    
+
     cl = db.session.get(Class, er.class_id)
     level = cl.level
     students = Student.query.filter_by(class_id=cl.id, is_deleted=False).order_by(Student.cno).all()
-    
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=0.4*inch, rightMargin=0.4*inch,
                            topMargin=0.3*inch, bottomMargin=0.3*inch)
     el = []
     sts = getSampleStyleSheet()
-    
+
     DARK_BLUE = colors.HexColor('#003366')
     CREAM = colors.HexColor('#FFF8F0')
     WHITE = colors.white
-    
+
     title_style = ParagraphStyle('T', parent=sts['Title'], alignment=TA_CENTER, fontSize=16, textColor=WHITE, leading=18)
     subtitle_style = ParagraphStyle('S', parent=sts['Normal'], alignment=TA_CENTER, fontSize=12, textColor=WHITE, leading=14)
     normal_style = ParagraphStyle('N', parent=sts['Normal'], fontSize=12, leading=14)
     small_style = ParagraphStyle('SM', parent=sts['Normal'], fontSize=10, leading=12)
-    
+
     for i, student in enumerate(students):
         if i > 0:
             el.append(PageBreak())
-        
+
         results = Result.query.filter_by(student_id=student.id, exam_record_id=eid).all()
         behavior = Behavior.query.filter_by(student_id=student.id, exam_record_id=eid).first()
         ss = StudentSubject.query.filter_by(student_id=student.id).all()
-        
+
         # Header
         hd = [[Paragraph("UCHILE SECONDARY SCHOOL", title_style)],
               [Paragraph("SUMBAWANGA DC - RUKWA REGION", subtitle_style)],
@@ -1362,7 +1368,7 @@ def bulk_report_cards(eid):
                                ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
         el.append(ht)
         el.append(Spacer(1, 8))
-        
+
         # Student Info + Passport
         info_text = f"<b>Name:</b> {student.first_name} {student.middle_name or ''} {student.last_name}<br/>"
         info_text += f"<b>CNO:</b> {student.cno}<br/>"
@@ -1371,31 +1377,52 @@ def bulk_report_cards(eid):
         info_text += f"<b>Sex:</b> {student.sex}<br/>"
         info_text += f"<b>Class:</b> Form {cl.name}<br/>"
         info_text += f"<b>Combination:</b> {student.combination or 'N/A'}"
-        
+
         info_para = Paragraph(info_text, normal_style)
-        
+
+        # Passport Photo
+        passport_added = False
         if student.passport_photo:
-            photo_path = student.passport_photo.replace('/uploads/', '')
-            full_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_path)
-            if os.path.exists(full_path):
-                passport_img = Image(full_path, width=100, height=130)
+            try:
+                if student.passport_photo.startswith('http'):
+                    import urllib.request
+                    import tempfile
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+                    urllib.request.urlretrieve(student.passport_photo, temp_file.name)
+                    passport_img = Image(temp_file.name, width=100, height=130)
+                    os.unlink(temp_file.name)
+                else:
+                    photo_path = student.passport_photo.replace('/uploads/', '')
+                    full_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_path)
+                    if os.path.exists(full_path):
+                        passport_img = Image(full_path, width=100, height=130)
+                    else:
+                        raise Exception("File not found")
+                
                 info_data = [[info_para, passport_img]]
                 info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
-                info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('ALIGN', (1, 0), (1, 0), 'RIGHT')]))
+                info_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                    ('LEFTPADDING', (1, 0), (1, 0), 10),
+                ]))
                 el.append(info_table)
-            else:
-                info_data = [[info_para, Paragraph('<b>[PASSPORT<br/>PHOTO]</b>', small_style)]]
-                info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
-                info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('ALIGN', (1, 0), (1, 0), 'CENTER')]))
-                el.append(info_table)
-        else:
+                passport_added = True
+            except:
+                pass
+        
+        if not passport_added:
             info_data = [[info_para, Paragraph('<b>[PASSPORT<br/>PHOTO]</b>', small_style)]]
             info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
-            info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('ALIGN', (1, 0), (1, 0), 'CENTER'), ('BOX', (1, 0), (1, 0), 1, colors.black)]))
+            info_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('BOX', (1, 0), (1, 0), 1, colors.black),
+            ]))
             el.append(info_table)
-        
+
         el.append(Spacer(1, 8))
-        
+
         # Results Table
         td = [['CODE', 'SUBJECT', 'SCORE', 'GRADE', 'REMARKS']]
         total_points = 0
@@ -1411,7 +1438,7 @@ def bulk_report_cards(eid):
                     cg.append(r.grade)
             else:
                 td.append([s.subject.code, s.subject.name, '-', '-', 'Absent'])
-        
+
         cw = [0.6*inch, 3.0*inch, 0.8*inch, 0.7*inch, 1.5*inch]
         t = Table(td, colWidths=cw)
         t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), DARK_BLUE),
@@ -1426,7 +1453,7 @@ def bulk_report_cards(eid):
                               ('ALIGN', (1, 0), (1, -1), 'LEFT')]))
         el.append(t)
         el.append(Spacer(1, 6))
-        
+
         # Division & GPA
         if level == 'A-LEVEL' and len(cg) >= 3:
             div = determine_a_level_division(cg[:3])
@@ -1440,7 +1467,7 @@ def bulk_report_cards(eid):
             el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
         el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
         el.append(Spacer(1, 6))
-        
+
         # Behavior
         el.append(Paragraph("<b>BEHAVIOR & CONDUCT (A=Bora, B=Vizuri, C=Wastani, D=Dhaifu)</b>", normal_style))
         bh_fields = ['heshima', 'ushirikiano', 'kujituma', 'usafi', 'nidhamu', 'uaminifu']
@@ -1460,12 +1487,12 @@ def bulk_report_cards(eid):
                                       ('ROWBACKGROUNDS', (0, 1), (-1, -1), [CREAM, WHITE])]))
         el.append(bh_table)
         el.append(Spacer(1, 6))
-        
+
         # Comments
         ct = behavior.class_teacher_comment if behavior and behavior.class_teacher_comment else '-'
         am = behavior.academic_master_comment if behavior and behavior.academic_master_comment else '-'
         hs = behavior.head_of_school_comment if behavior and behavior.head_of_school_comment else 'Aongeze bidii zaidi katika masomo yote!'
-        
+
         el.append(Paragraph("<b>OFFICIAL COMMENTS</b>", normal_style))
         el.append(Spacer(1, 3))
         el.append(Paragraph(f"<b>Class Teacher:</b> <u>{ct}</u>", normal_style))
@@ -1474,7 +1501,7 @@ def bulk_report_cards(eid):
         el.append(Spacer(1, 2))
         el.append(Paragraph(f"<b>Head of School:</b> <u>{hs}</u>", normal_style))
         el.append(Spacer(1, 6))
-        
+
         # Signatures
         sig_data = [['_____________________', '_____________________', '_____________________'],
                     ['Class Teacher', 'Academic Master', 'Head of School']]
@@ -1482,14 +1509,13 @@ def bulk_report_cards(eid):
         sig_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 10)]))
         el.append(sig_table)
         el.append(Spacer(1, 4))
-        
+
         el.append(Paragraph(f"Processed: {datetime.now().strftime('%d/%m/%Y')} | Uchile RMS v1.0", small_style))
-    
+
     doc.build(el)
     buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True,
                     download_name=f'Bulk_Reports_Form{cl.name}_{er.exam_type}.pdf')
-
 # ==================== REGISTRY ====================
 @app.route('/registry')
 @login_required
