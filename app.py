@@ -720,10 +720,10 @@ def upload_scores():
                     subject_columns[subject.code] = col
                     break
         for _, row in df.iterrows():
-            admission_number = str(row['admission_number'])
-            student = Student.query.filter_by(admission_number=admission_number).first()
+            cno = str(row.get('cno', row.get('admission_number', '')))
+            student = Student.query.filter_by(cno=cno).first()
             if not student:
-                errors.append(f"Student {admission_number} not found")
+                errors.append(f"Student {cno} not found")
                 continue
             for subject_code, col_name in subject_columns.items():
                 score_value = row[col_name]
