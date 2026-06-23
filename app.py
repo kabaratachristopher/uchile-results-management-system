@@ -26,6 +26,8 @@ from datetime import datetime, timedelta
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import urllib.request
+import tempfile
 
 cloudinary.config(
     cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
@@ -931,8 +933,6 @@ def report_card(sid, eid):
     if st.passport_photo:
         try:
             if st.passport_photo.startswith('http'):
-                import urllib.request
-                import tempfile
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
                 urllib.request.urlretrieve(st.passport_photo, temp_file.name)
                 passport_img = Image(temp_file.name, width=100, height=130)
@@ -1385,8 +1385,6 @@ def bulk_report_cards(eid):
         if student.passport_photo:
             try:
                 if student.passport_photo.startswith('http'):
-                    import urllib.request
-                    import tempfile
                     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
                     urllib.request.urlretrieve(student.passport_photo, temp_file.name)
                     passport_img = Image(temp_file.name, width=100, height=130)
