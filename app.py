@@ -1387,7 +1387,6 @@ def bulk_report_cards(eid):
         info_text += f"<b>Sex:</b> {student.sex}<br/>"
         info_text += f"<b>Class:</b> Form {cl.name}<br/>"
         info_text += f"<b>Combination:</b> {student.combination or 'N/A'}"
-
         info_para = Paragraph(info_text, normal_style)
 
         # Passport Photo
@@ -1395,27 +1394,20 @@ def bulk_report_cards(eid):
         if student.passport_photo:
             try:
                 if student.passport_photo.startswith('http'):
-                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
-                    urllib.request.urlretrieve(student.passport_photo, temp_file.name)
-                    passport_img = Image(temp_file.name, width=100, height=130)
-                    os.unlink(temp_file.name)
+                    raise Exception("Remote URL")
                 else:
                     photo_path = student.passport_photo.replace('/uploads/', '')
                     full_path = os.path.join(app.config['UPLOAD_FOLDER'], photo_path)
                     if os.path.exists(full_path):
                         passport_img = Image(full_path, width=100, height=130)
-                    else:
-                        raise Exception("File not found")
-                
-                info_data = [[info_para, passport_img]]
-                info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
-                info_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-                    ('LEFTPADDING', (1, 0), (1, 0), 10),
-                ]))
-                el.append(info_table)
-                passport_added = True
+                        info_data = [[info_para, passport_img]]
+                        info_table = Table(info_data, colWidths=[5.5*inch, 1.5*inch])
+                        info_table.setStyle(TableStyle([
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                        ]))
+                        el.append(info_table)
+                        passport_added = True
             except:
                 pass
         
@@ -1428,7 +1420,6 @@ def bulk_report_cards(eid):
                 ('BOX', (1, 0), (1, 0), 1, colors.black),
             ]))
             el.append(info_table)
-
         el.append(Spacer(1, 8))
 
         # Results Table
@@ -1446,7 +1437,6 @@ def bulk_report_cards(eid):
                     cg.append(r.grade)
             else:
                 td.append([s.subject.code, s.subject.name, '-', '-', 'Absent'])
-
         cw = [0.6*inch, 3.0*inch, 0.8*inch, 0.7*inch, 1.5*inch]
         t = Table(td, colWidths=cw)
         t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), DARK_BLUE),
@@ -1462,31 +1452,31 @@ def bulk_report_cards(eid):
         el.append(t)
         el.append(Spacer(1, 6))
 
-            # Division & GPA - Use BEST 7 for O-Level, CORE 3 for A-Level
-    if level == 'A-LEVEL' and len(cg) >= 3:
-        div = determine_a_level_division(cg[:3])
-        pts = sum(calculate_a_level_points(g) for g in cg[:3])
-        el.append(Paragraph(f"<b>Division: {div} (Core: {pts})</b>", normal_style))
-    elif level == 'O-LEVEL' and num_subjects >= 7:
-        # Get best 7 subjects (lowest points = best)
-        all_scores = []
-        for s in ss:
-            r = next((x for x in results if x.subject_id == s.subject_id), None)
-            if r:
-                all_scores.append(r.points)
-        all_scores.sort()
-        best_seven = all_scores[:7]
-        best_total = sum(best_seven)
-        div = determine_o_level_division(best_total, 7)
-        el.append(Paragraph(f"<b>Division: {div} (Best 7: {best_total})</b>", normal_style))
-    if results:
-        gpa = calculate_gpa([r.grade for r in results], level)
-        el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
-    el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
-    el.append(Spacer(1, 6))
+        # Division & GPA - Use BEST 7 for O-Level
+        if level == 'A-LEVEL' and len(cg) >= 3:
+            div = determine_a_level_division(cg[:3])
+            pts = sum(calculate_a_level_points(g) for g in cg[:3])
+            el.append(Paragraph(f"<b>Division: {div} (Core: {pts})</b>", normal_style))
+        elif level == 'O-LEVEL' and num_subjects >= 7:
+            all_scores = []
+            for s in ss:
+                r = next((x for x in results if x.subject_id == s.subject_id), None)
+                if r:
+                    all_scores.append(r.points)
+            all_scores.sort()
+            best_seven = all_scores[:7]
+            best_total = sum(best_seven)
+            div = determine_o_level_division(best_total, 7)
+            el.append(Paragraph(f"<b>Division: {div} (Best 7: {best_total})</b>", normal_style))
+        if results:
+            gpa = calculate_gpa([r.grade for r in results], level)
+            el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
+        el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
+        el.append(Spacer(1, 6))
 
         # Behavior
         el.append(Paragraph("<b>BEHAVIOR & CONDUCT (A=Bora, B=Vizuri, C=Wastani, D=Dhaifu)</b>", normal_style))
+        el.append(Spacer(1, 2))
         bh_fields = ['heshima', 'ushirikiano', 'kujituma', 'usafi', 'nidhamu', 'uaminifu']
         bh_labels = ['Heshima', 'Ushirikiano', 'Kujituma', 'Usafi', 'Nidhamu', 'Uaminifu']
         bh_data = [['Behavior', 'Grade', 'Behavior', 'Grade']]
@@ -1509,7 +1499,6 @@ def bulk_report_cards(eid):
         ct = behavior.class_teacher_comment if behavior and behavior.class_teacher_comment else '-'
         am = behavior.academic_master_comment if behavior and behavior.academic_master_comment else '-'
         hs = behavior.head_of_school_comment if behavior and behavior.head_of_school_comment else 'Aongeze bidii zaidi katika masomo yote!'
-
         el.append(Paragraph("<b>OFFICIAL COMMENTS</b>", normal_style))
         el.append(Spacer(1, 3))
         el.append(Paragraph(f"<b>Class Teacher:</b> <u>{ct}</u>", normal_style))
@@ -1526,13 +1515,13 @@ def bulk_report_cards(eid):
         sig_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 10)]))
         el.append(sig_table)
         el.append(Spacer(1, 4))
-
         el.append(Paragraph(f"Processed: {datetime.now().strftime('%d/%m/%Y')} | Uchile RMS v1.0", small_style))
 
     doc.build(el)
     buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True,
                     download_name=f'Bulk_Reports_Form{cl.name}_{er.exam_type}.pdf')
+
 # ==================== REGISTRY ====================
 @app.route('/registry')
 @login_required
