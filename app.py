@@ -1001,13 +1001,23 @@ def report_card(sid, eid):
     el.append(Spacer(1, 6))
 
     # Division & GPA
+        # Division & GPA - Use BEST 7 for O-Level, CORE 3 for A-Level
     if level == 'A-LEVEL' and len(cg) >= 3:
         div = determine_a_level_division(cg[:3])
         pts = sum(calculate_a_level_points(g) for g in cg[:3])
         el.append(Paragraph(f"<b>Division: {div} (Core: {pts})</b>", normal_style))
     elif level == 'O-LEVEL' and num_subjects >= 7:
-        div = determine_o_level_division(total_points, num_subjects)
-        el.append(Paragraph(f"<b>Division: {div} (Total: {total_points})</b>", normal_style))
+        # Get best 7 subjects (lowest points = best)
+        all_scores = []
+        for s in ss:
+            r = next((x for x in results if x.subject_id == s.subject_id), None)
+            if r:
+                all_scores.append(r.points)
+        all_scores.sort()
+        best_seven = all_scores[:7]
+        best_total = sum(best_seven)
+        div = determine_o_level_division(best_total, 7)
+        el.append(Paragraph(f"<b>Division: {div} (Best 7: {best_total})</b>", normal_style))
     if results:
         gpa = calculate_gpa([r.grade for r in results], level)
         el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
@@ -1452,19 +1462,28 @@ def bulk_report_cards(eid):
         el.append(t)
         el.append(Spacer(1, 6))
 
-        # Division & GPA
-        if level == 'A-LEVEL' and len(cg) >= 3:
-            div = determine_a_level_division(cg[:3])
-            pts = sum(calculate_a_level_points(g) for g in cg[:3])
-            el.append(Paragraph(f"<b>Division: {div} (Core Points: {pts})</b>", normal_style))
-        elif level == 'O-LEVEL' and num_subjects >= 7:
-            div = determine_o_level_division(total_points, num_subjects)
-            el.append(Paragraph(f"<b>Division: {div} (Total Points: {total_points})</b>", normal_style))
-        if results:
-            gpa = calculate_gpa([r.grade for r in results], level)
-            el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
-        el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
-        el.append(Spacer(1, 6))
+            # Division & GPA - Use BEST 7 for O-Level, CORE 3 for A-Level
+    if level == 'A-LEVEL' and len(cg) >= 3:
+        div = determine_a_level_division(cg[:3])
+        pts = sum(calculate_a_level_points(g) for g in cg[:3])
+        el.append(Paragraph(f"<b>Division: {div} (Core: {pts})</b>", normal_style))
+    elif level == 'O-LEVEL' and num_subjects >= 7:
+        # Get best 7 subjects (lowest points = best)
+        all_scores = []
+        for s in ss:
+            r = next((x for x in results if x.subject_id == s.subject_id), None)
+            if r:
+                all_scores.append(r.points)
+        all_scores.sort()
+        best_seven = all_scores[:7]
+        best_total = sum(best_seven)
+        div = determine_o_level_division(best_total, 7)
+        el.append(Paragraph(f"<b>Division: {div} (Best 7: {best_total})</b>", normal_style))
+    if results:
+        gpa = calculate_gpa([r.grade for r in results], level)
+        el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
+    el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
+    el.append(Spacer(1, 6))
 
         # Behavior
         el.append(Paragraph("<b>BEHAVIOR & CONDUCT (A=Bora, B=Vizuri, C=Wastani, D=Dhaifu)</b>", normal_style))
