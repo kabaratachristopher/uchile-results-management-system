@@ -1005,7 +1005,7 @@ def report_card(sid, eid):
     if level == 'A-LEVEL' and len(cg) >= 3:
         div = determine_a_level_division(cg[:3])
         pts = sum(calculate_a_level_points(g) for g in cg[:3])
-        el.append(Paragraph(f"<b>Division: {div} (Core: {pts})</b>", normal_style))
+        el.append(Paragraph(f"<b>Division: {div} (Points: {pts})</b>", normal_style))
     elif level == 'O-LEVEL' and num_subjects >= 7:
         # Get best 7 subjects (lowest points = best)
         all_scores = []
@@ -1017,7 +1017,7 @@ def report_card(sid, eid):
         best_seven = all_scores[:7]
         best_total = sum(best_seven)
         div = determine_o_level_division(best_total, 7)
-        el.append(Paragraph(f"<b>Division: {div} (Best 7: {best_total})</b>", normal_style))
+        el.append(Paragraph(f"<b>Division: {div} (Points: {best_total})</b>", normal_style))
     if results:
         gpa = calculate_gpa([r.grade for r in results], level)
         el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
@@ -1456,7 +1456,7 @@ def bulk_report_cards(eid):
         if level == 'A-LEVEL' and len(cg) >= 3:
             div = determine_a_level_division(cg[:3])
             pts = sum(calculate_a_level_points(g) for g in cg[:3])
-            el.append(Paragraph(f"<b>Division: {div} (Core: {pts})</b>", normal_style))
+            el.append(Paragraph(f"<b>Division: {div} (Points: {pts})</b>", normal_style))
         elif level == 'O-LEVEL' and num_subjects >= 7:
             all_scores = []
             for s in ss:
@@ -1467,7 +1467,7 @@ def bulk_report_cards(eid):
             best_seven = all_scores[:7]
             best_total = sum(best_seven)
             div = determine_o_level_division(best_total, 7)
-            el.append(Paragraph(f"<b>Division: {div} (Best 7: {best_total})</b>", normal_style))
+            el.append(Paragraph(f"<b>Division: {div} (Points: {best_total})</b>", normal_style))
         if results:
             gpa = calculate_gpa([r.grade for r in results], level)
             el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
