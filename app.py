@@ -1000,29 +1000,31 @@ def report_card(sid, eid):
     el.append(t)
     el.append(Spacer(1, 6))
 
-    # Division & GPA
-        # Division & GPA - Use BEST 7 for O-Level, CORE 3 for A-Level
-    if level == 'A-LEVEL' and len(cg) >= 3:
-        div = determine_a_level_division(cg[:3])
-        pts = sum(calculate_a_level_points(g) for g in cg[:3])
-        el.append(Paragraph(f"<b>Division: {div} (Points: {pts})</b>", normal_style))
-    elif level == 'O-LEVEL' and num_subjects >= 7:
-        # Get best 7 subjects (lowest points = best)
-        all_scores = []
-        for s in ss:
-            r = next((x for x in results if x.subject_id == s.subject_id), None)
-            if r:
-                all_scores.append(r.points)
-        all_scores.sort()
-        best_seven = all_scores[:7]
-        best_total = sum(best_seven)
-        div = determine_o_level_division(best_total, 7)
-        el.append(Paragraph(f"<b>Division: {div} (Points: {best_total})</b>", normal_style))
-    if results:
-        gpa = calculate_gpa([r.grade for r in results], level)
-        el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
-    el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
-    el.append(Spacer(1, 6))
+        # Division & GPA
+        div = 'ABS'
+        if level == 'A-LEVEL' and len(cg) >= 3:
+            div = determine_a_level_division(cg[:3])
+            pts = sum(calculate_a_level_points(g) for g in cg[:3])
+            el.append(Paragraph(f"<b>Division: {div} (Points: {pts})</b>", normal_style))
+        elif level == 'O-LEVEL' and num_subjects >= 7:
+            all_scores = []
+            for s in ss:
+                r = next((x for x in results if x.subject_id == s.subject_id), None)
+                if r:
+                    all_scores.append(r.points)
+            if all_scores:
+                all_scores.sort()
+                best_seven = all_scores[:7]
+                best_total = sum(best_seven)
+                div = determine_o_level_division(best_total, 7)
+                el.append(Paragraph(f"<b>Division: {div} (Points: {best_total})</b>", normal_style))
+        elif level == 'O-LEVEL' and num_subjects > 0:
+            div = 'INCOMPLETE'
+        if results:
+            gpa = calculate_gpa([r.grade for r in results], level)
+            el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
+        el.append(Paragraph("A=75-100 B=65-74 C=45-64 D=30-44 F=0-29 | A-Level: A=80-100 B=70-79 C=60-69 D=50-59 E=40-49 S=35-39 F=0-34", small_style))
+        el.append(Spacer(1, 6))
 
     # Behavior Section
     el.append(Paragraph("<b>BEHAVIOR & CONDUCT (A=Bora, B=Vizuri, C=Wastani, D=Dhaifu)</b>", normal_style))
@@ -1072,6 +1074,7 @@ def report_card(sid, eid):
     buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True,
                     download_name=f'Report_{st.cno}.pdf')
+
 # ==================== NECTA FORMAT PDF ====================
 @app.route('/api/reports/necta-format/<int:eid>')
 def necta_pdf(eid):
@@ -1452,7 +1455,8 @@ def bulk_report_cards(eid):
         el.append(t)
         el.append(Spacer(1, 6))
 
-        # Division & GPA - Use BEST 7 for O-Level
+        # Division & GPA
+        div = 'ABS'
         if level == 'A-LEVEL' and len(cg) >= 3:
             div = determine_a_level_division(cg[:3])
             pts = sum(calculate_a_level_points(g) for g in cg[:3])
@@ -1463,11 +1467,14 @@ def bulk_report_cards(eid):
                 r = next((x for x in results if x.subject_id == s.subject_id), None)
                 if r:
                     all_scores.append(r.points)
-            all_scores.sort()
-            best_seven = all_scores[:7]
-            best_total = sum(best_seven)
-            div = determine_o_level_division(best_total, 7)
-            el.append(Paragraph(f"<b>Division: {div} (Points: {best_total})</b>", normal_style))
+            if all_scores:
+                all_scores.sort()
+                best_seven = all_scores[:7]
+                best_total = sum(best_seven)
+                div = determine_o_level_division(best_total, 7)
+                el.append(Paragraph(f"<b>Division: {div} (Points: {best_total})</b>", normal_style))
+        elif level == 'O-LEVEL' and num_subjects > 0:
+            div = 'INCOMPLETE'
         if results:
             gpa = calculate_gpa([r.grade for r in results], level)
             el.append(Paragraph(f"<b>GPA: {gpa}</b>", normal_style))
@@ -1904,23 +1911,23 @@ def get_auto_comments(division):
     """Get auto-comments based on division - Swahili"""
     comments = {
         'I': {
-            'class_teacher': 'Bora sana! Aongeze bidii!',
-            'academic_master': 'Vizuri sana! Asibweteke!'
+            'class_teacher': 'Vizuri! Aongeze bidii!',
+            'academic_master': 'Bora! Aongeze bidii zaidi!'
         },
         'II': {
-            'class_teacher': 'Vizuri! Aongeze bidii zaidi!',
-            'academic_master': 'Vizuri! Akazane zaidi!'
+            'class_teacher': 'Wastani! Aongeze bidii zaidi!',
+            'academic_master': 'Wastani! Aongeze bidii zaidi!'
         },
         'III': {
-            'class_teacher': 'Wastani! Aongeze bidii zaidi!',
-            'academic_master': 'Wastani! Aongeze bidii zaidi katika masomo yote!'
+            'class_teacher': 'Hairidhishi! Aongeze bidii zaidi!',
+            'academic_master': 'Hairidhishi! Aongeze bidii zaidi katika masomo yote!'
         },
         'IV': {
             'class_teacher': 'Dhaifu! Ajitahidi kujisomea!',
             'academic_master': 'Dhaifu! Aongeze bidii zaidi katika masomo yote!'
         },
         '0': {
-            'class_teacher': 'Mbaya! Ajitahidi kujisomea!',
+            'class_teacher': 'Duni! Ajitahidi kujisomea!',
             'academic_master': 'Mbaya! Aongeze bidii zaidi katika masomo yote!'
         },
         'ABS': {
